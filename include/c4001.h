@@ -141,6 +141,16 @@ public:
                            uint16_t trig_cm);
 
     /**
+     * @brief Set Gpio pin output.
+     * 
+     * @param polarity
+     *  - Off: GPIO is LOW when triggered
+     *  - On: GPIO is HIGH when triggered
+     * @return true on success
+     */
+    bool setGpioPolarity(Switch polarity);
+
+    /**
      * @brief Set detection latency.
      *
      * @param trigger_cs Trigger delay in centiseconds
@@ -214,11 +224,6 @@ private:
      * @brief Read a newline-terminated response.
      */
     bool readLine(uint32_t timeout_ms);
-
-    /**
-     * @brief Wait for an "OK" response.
-     */
-    inline bool waitForOK(uint32_t timeout_ms);
 
     /**
      * @brief Parse radar status line.

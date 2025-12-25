@@ -10,33 +10,34 @@ C4001<Uart>::C4001(Uart &io) : _io(io) {}
 template <UartTransport Uart>
 bool C4001<Uart>::start()
 {
-    return sendCmd("sensorStart") && waitForOK(CMD_TIMEOUT_MS);
+    return sendCmd("sensorStart");
 }
 
 template <UartTransport Uart>
 bool C4001<Uart>::stop()
 {
-    return sendCmd("sensorStop") && waitForOK(CMD_TIMEOUT_MS);
+    return sendCmd("sensorStop");
 }
 
 template <UartTransport Uart>
 bool C4001<Uart>::reset()
 {
-    return sendCmd("resetSystem") && waitForOK(CMD_TIMEOUT_MS);
+    return sendCmd("resetSystem");
 }
 
 template <UartTransport Uart>
 bool C4001<Uart>::saveConfig()
 {
-    return sendCmd("saveConfig") && waitForOK(CMD_TIMEOUT_MS);
+    return sendCmd("saveConfig");
 }
 
 template <UartTransport Uart>
 bool C4001<Uart>::setMode(Mode mode)
 {
-    stop();
-    sendCmd(mode == Mode::Speed ? "setRunApp 1" : "setRunApp 0");
-    saveConfig();
+    if (!stop()) { return false; }
+    if (!sendCmd(mode == Mode::Speed
+                 ? "setRunApp 1" : "setRunApp 0")) { return false; }
+    if (!saveConfig()) { return false; }
     return start();
 }
 
@@ -94,6 +95,15 @@ bool C4001<Uart>::setDetectionRange(uint16_t min_cm,
 }
 
 template <UartTransport Uart>
+bool C4001<Uart>::setGpioPolarity(Switch polarity)
+{
+    std::array<char, 32> cmd{};
+    snprintf(cmd.data(), cmd.size(), "setGpioMode 1 %u",
+             static_cast<uint8_t>(polarity));
+    return sendCmd(cmd.data());
+}
+
+template <UartTransport Uart>
 bool C4001<Uart>::setLatency(uint8_t trigger_cs, uint16_t keep_s)
 {
     std::array<char, 40> cmd{};
@@ -143,10 +153,7 @@ bool C4001<Uart>::sendCmd(std::string_view cmd)
     const auto len = static_cast<int>(cmd.size());
     return _io.write(
                 reinterpret_cast<const uint8_t*>(cmd.data()),
-                len) == len &&
-            _io.write(
-                reinterpret_cast<const uint8_t*>("\n"),
-                1) == 1;
+                len) == len;
 }
 
 template <UartTransport Uart>
@@ -163,16 +170,6 @@ bool C4001<Uart>::readLine(uint32_t timeout_ms)
         _rxBuf[idx++] = c;
     }
     return false;
-}
-
-template <UartTransport Uart>
-bool C4001<Uart>::waitForOK(uint32_t timeout_ms)
-{
-    if (!readLine(timeout_ms))
-    {
-        return false;
-    }
-    return std::string_view{_rxBuf.data()}.find("OK") != std::string_view::npos;
 }
 
 template <UartTransport Uart>
